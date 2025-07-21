@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Videos del Sistema Solar - Papiweb</title>
+    
+    <!-- Favicons para máxima compatibilidad -->
+    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="static/favicon_16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="static/favicon_32x32.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="static/favicon_64x64.png">
+    <link rel="shortcut icon" href="static/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(rgba(12, 12, 43, 0.4), rgba(26, 26, 74, 0.4), rgba(45, 45, 90, 0.4)),
+                        url('static/obser.png') center/cover no-repeat fixed;
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+        }
+
+        .header h1 {
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .header a {
+            color: #ffd700 !important;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .header a:hover {
+            color: #ffed4e !important;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            transform: scale(1.05);
+        }
+
+        .coffee-icon {
+            display: inline-block;
+            margin: 0 5px;
+            font-size: 1.2em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .panel h2 {
+            color: #ffd700;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .demo-section {
+            margin: 30px 0;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .demo-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .demo-card h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .demo-card video {
+            width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            backdrop-filter: blur(15px);
+        }
+
+        .info-section h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .info-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-section li {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid #ffd700;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #000;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.7;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="coffee-icon">☕</span> Papiweb Desarrollos Informáticos</h1>
+            <p>Generador de Videos del Sistema Solar</p>
+            <p><strong><a href="https://link.mercadopago.com.ar/papiweb" target="_blank">link.mercadopago.com.ar/papiweb</a></strong></p>
+        </div>
+
+        <!-- Sección Principal -->
+        <div class="panel">
+            <h2>🚀 Sistema Solar Interactivo</h2>
+            <p>Bienvenido al generador de videos del sistema solar más avanzado. Explora 24 modos diferentes de visualización con efectos realistas, cósmicos y artísticos.</p>
+        </div>
+
+        <!-- Características -->
+        <div class="info-section">
+            <h3>✨ Características Principales</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🌍</span>
+                    <h4>24 Modos Únicos</h4>
+                    <p>Desde vistas básicas hasta efectos cósmicos avanzados</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🎬</span>
+                    <h4>Videos HD</h4>
+                    <p>Generación en alta definición con efectos visuales</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🎨</span>
+                    <h4>Efectos Visuales</h4>
+                    <p>Partículas, neblinas y fondos astronómicos reales</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">⚡</span>
+                    <h4>Streaming Rápido</h4>
+                    <p>Reproducción optimizada con HTTP Range requests</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modos de Visualización -->
+        <div class="info-section">
+            <h3>🌌 Modos de Visualización Disponibles</h3>
+            <ul>
+                <li><strong>🌍 Modos Básicos:</strong> Básico, Mínimal, Limpio</li>
+                <li><strong>🎨 Modos Artísticos:</strong> Artístico, Vintage, Retro</li>
+                <li><strong>🔬 Modos Científicos:</strong> Científico, Educativo, Detallado</li>
+                <li><strong>🌠 Modos Cósmicos:</strong> Cósmico, Galáctico, Nebulosa</li>
+                <li><strong>🎬 Modos Cinematográficos:</strong> Cinematográfico, Épico, Dramático</li>
+                <li><strong>🌈 Modos Especiales:</strong> Psicodélico, Fantasía, Místico</li>
+                <li><strong>🔥 Modos de Efectos:</strong> Fuego, Agua, Energía, Todos los Efectos</li>
+            </ul>
+        </div>
+
+        <!-- Videos Demo -->
+        <div class="demo-section">
+            <h3 style="color: #ffd700; text-align: center; margin-bottom: 20px;">🎥 Videos de Demostración</h3>
+            <div class="demo-grid">
+                <div class="demo-card">
+                    <h3>🌟 Modo Realista</h3>
+                    <video controls>
+                        <source src="static/solar_realistic_1753125177291.avi" type="video/avi">
+                        <source src="static/test_orbits_fixed.avi" type="video/avi">
+                        Tu navegador no soporta el elemento video.
+                    </video>
+                    <p>Simulación realista del sistema solar con órbitas precisas</p>
+                </div>
+                
+                <div class="demo-card">
+                    <h3>🌌 Efectos Especiales</h3>
+                    <video controls>
+                        <source src="static/solar_all_1753127531310.avi" type="video/avi">
+                        Tu navegador no soporta el elemento video.
+                    </video>
+                    <p>Combinación de todos los efectos visuales disponibles</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="cta-section">
+            <h3>🚀 ¿Listo para crear tu video personalizado?</h3>
+            <p>Contacta con Papiweb Desarrollos para obtener acceso completo al generador</p>
+            <a href="https://link.mercadopago.com.ar/papiweb" target="_blank" class="btn">💳 Acceder Ahora</a>
+            <a href="mailto:papiweb.desarrollos@gmail.com" class="btn">📧 Contactar</a>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2025 Papiweb Desarrollos Informáticos. Todos los derechos reservados.</p>
+            <p>Desarrollado con 💛 para la exploración del cosmos</p>
+        </div>
+    </div>
+</body>
+</html>

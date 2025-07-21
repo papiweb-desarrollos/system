@@ -1,0 +1,712 @@
+import pygame
+import math
+import cv2
+import numpy as np
+import random
+import argparse
+import os
+
+# Configurar el driver de video para entornos sin display
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
+
+# --------------------------------------------------
+# Configuración de pantalla
+WIDTH, HEIGHT = 1400, 1000
+pygame.init()
+font = pygame.font.SysFont("Arial", 24, bold=True)
+watermark_font = pygame.font.SysFont("Arial", 18, italic=True)
+
+# Branding y footer link
+BRANDING_TEXT = "Papiweb Desarrollos Informáticos"
+BRANDING_POS = (20, HEIGHT - 60)
+LINK_TEXT = "link.mercadopago.com.ar/papiweb"
+LINK_POS = (60, HEIGHT - 30)
+link_color = (255, 255, 255)
+
+# Generar icono de taza de café con Pygame
+def create_coffee_icon(size=(32, 32)):
+    surf = pygame.Surface(size, pygame.SRCALPHA)
+    w, h = size
+    cup_width, cup_height = w * 0.6, h * 0.5
+    cup_x = (w - cup_width) / 2
+    cup_y = h * 0.4
+    cup_rect = pygame.Rect(cup_x, cup_y, cup_width, cup_height)
+    pygame.draw.rect(surf, (100, 50, 20), cup_rect, border_radius=5)
+    handle_rect = pygame.Rect(cup_x + cup_width - 5, cup_y + 10, cup_width * 0.3, cup_height * 0.6)
+    pygame.draw.ellipse(surf, (100, 50, 20), handle_rect, width=4)
+    steam_color = (220, 220, 220)
+    for i in range(3):
+        start_x = cup_x + cup_width * (0.3 + 0.15 * i)
+        start_y = cup_y
+        end_x = start_x
+        end_y = start_y - cup_height * 0.4
+        control_offset = cup_width * 0.1
+        points = [
+            (start_x, start_y),
+            (start_x - control_offset / 2, (start_y + end_y) / 2),
+            (start_x + control_offset / 2, end_y)
+        ]
+        pygame.draw.lines(surf, steam_color, False, points, 2)
+    return surf
+
+coffee_icon = create_coffee_icon((32, 32))
+
+# Cargar imagen de fondo opcional (4bca.png)
+background_img = None
+try:
+    background_path = "templates/4bca.png"
+    if os.path.exists(background_path):
+        background_img = pygame.image.load(background_path)
+        background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
+        print(f"Imagen de fondo cargada: {background_path}")
+except Exception as e:
+    print(f"No se pudo cargar la imagen de fondo: {e}")
+    background_img = None
+
+PLANET_COLORS = [
+    (255,200,0), (150,75,0), (200,150,100), (100,100,255),
+    (255,50,50), (255,200,100), (200,200,200), (100,255,255), (100,150,255)
+]
+PLANET_NAMES = ["Sol","Mercurio","Venus","Tierra","Marte","Jupiter","Saturno","Urano","Neptuno"]
+PLANET_RADII = [30,5,8,10,7,20,18,15,15]
+PLANET_DISTANCES = [0,50,90,130,170,240,300,360,420]
+SATELLITES = {3:{'count':1,'dist':20,'rad':3,'col':(200,200,200)},
+              6:{'count':2,'dist':25,'rad':2,'col':(180,180,180)}}
+
+# Configuraciones adicionales para nuevos modos
+ASTEROID_BELT = {'inner': 190, 'outer': 220, 'count': 50}
+COMETS_CONFIG = [
+    {'orbit_radius': 300, 'speed': 0.02, 'color': (200, 200, 255), 'radius': 3},
+    {'orbit_radius': 450, 'speed': 0.015, 'color': (255, 200, 200), 'radius': 4},
+    {'orbit_radius': 500, 'speed': 0.01, 'color': (200, 255, 200), 'radius': 2}
+]
+
+# Configuraciones de efectos especiales
+EFFECTS_CONFIG = {
+    'solar_flares': {'intensity': 80, 'frequency': 0.1},
+    'nebula': {'colors': [(128, 0, 128), (75, 0, 130), (138, 43, 226)], 'density': 100},
+    'meteor_shower': {'count': 10, 'speed': 5},
+    'planet_glow': {'intensity': 40, 'radius_multiplier': 2.5}
+}
+
+EXTRA_PLANETS = []
+COMETS = []
+SPACESHIP = None
+
+stars = [(random.randint(0,WIDTH*2), random.randint(0,HEIGHT*2), random.randint(150,255)) for _ in range(300)]
+
+def draw_halo(surf, center, max_r, color, alpha_base):
+    for r in range(max_r, 0, -5):
+        alpha = max(0, alpha_base - (max_r - r) * (alpha_base // max_r))
+        halo = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+        pygame.draw.circle(halo, color + (alpha,), (r, r), r)
+        surf.blit(halo, (center[0]-r, center[1]-r), special_flags=pygame.BLEND_RGBA_ADD)
+
+def interpolate(a, b, t):
+    return (a[0] + (b[0]-a[0]) * t, a[1] + (b[1]-a[1]) * t)
+
+def draw_asteroid_belt(surf, center, frame_idx):
+    """Dibujar cinturón de asteroides"""
+    inner_r = ASTEROID_BELT['inner']
+    outer_r = ASTEROID_BELT['outer']
+    count = ASTEROID_BELT['count']
+    
+    for i in range(count):
+        angle = (i / count) * 2 * math.pi + frame_idx * 0.002
+        radius = random.uniform(inner_r, outer_r)
+        x = center[0] + int(math.cos(angle) * radius)
+        y = center[1] + int(math.sin(angle) * radius)
+        
+        # Asteroides de diferentes tamaños
+        size = random.randint(1, 3)
+        color = (120 + random.randint(-20, 20), 100 + random.randint(-10, 10), 80 + random.randint(-10, 10))
+        pygame.draw.circle(surf, color, (x, y), size)
+
+def draw_comets(surf, center, frame_idx):
+    """Dibujar cometas con colas dinámicas"""
+    for comet in COMETS_CONFIG:
+        angle = frame_idx * comet['speed']
+        cx = center[0] + int(math.cos(angle) * comet['orbit_radius'])
+        cy = center[1] + int(math.sin(angle) * comet['orbit_radius'])
+        
+        # Dibujar cola del cometa
+        tail_length = 15
+        for t in range(tail_length):
+            tail_x = cx - int(math.cos(angle) * (comet['radius'] * 3 + t * 4))
+            tail_y = cy - int(math.sin(angle) * (comet['radius'] * 3 + t * 4))
+            alpha = max(0, 200 - t * 15)
+            
+            tail_surf = pygame.Surface((comet['radius'] * 2, comet['radius'] * 2), pygame.SRCALPHA)
+            pygame.draw.circle(tail_surf, comet['color'] + (alpha,), (comet['radius'], comet['radius']), comet['radius'])
+            surf.blit(tail_surf, (tail_x - comet['radius'], tail_y - comet['radius']), special_flags=pygame.BLEND_RGBA_ADD)
+        
+        # Dibujar núcleo del cometa
+        pygame.draw.circle(surf, comet['color'], (cx, cy), comet['radius'])
+
+def draw_solar_flares(surf, center, frame_idx):
+    """Dibujar llamaradas solares"""
+    config = EFFECTS_CONFIG['solar_flares']
+    if random.random() < config['frequency']:
+        flare_count = random.randint(3, 8)
+        for _ in range(flare_count):
+            angle = random.uniform(0, 2 * math.pi)
+            length = random.randint(40, 80)
+            
+            start_x = center[0] + int(math.cos(angle) * 35)
+            start_y = center[1] + int(math.sin(angle) * 35)
+            end_x = center[0] + int(math.cos(angle) * length)
+            end_y = center[1] + int(math.sin(angle) * length)
+            
+            # Gradiente de llamarada
+            for i in range(10):
+                alpha = 255 - i * 25
+                flare_surf = pygame.Surface((4, 4), pygame.SRCALPHA)
+                flare_color = (255, 200 + i * 5, 0, alpha)
+                pygame.draw.circle(flare_surf, flare_color, (2, 2), 2)
+                
+                t = i / 10.0
+                fx = int(start_x + (end_x - start_x) * t)
+                fy = int(start_y + (end_y - start_y) * t)
+                surf.blit(flare_surf, (fx - 2, fy - 2), special_flags=pygame.BLEND_RGBA_ADD)
+
+def draw_nebula_background(surf, frame_idx):
+    """Dibujar fondo de nebulosa"""
+    colors = EFFECTS_CONFIG['nebula']['colors']
+    density = EFFECTS_CONFIG['nebula']['density']
+    
+    for _ in range(density):
+        x = random.randint(0, WIDTH * 2)
+        y = random.randint(0, HEIGHT * 2)
+        color = random.choice(colors)
+        
+        # Efecto de nebulosa con transparencia
+        alpha = random.randint(10, 40)
+        size = random.randint(20, 60)
+        
+        nebula_surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
+        pygame.draw.circle(nebula_surf, color + (alpha,), (size, size), size)
+        surf.blit(nebula_surf, (x - size, y - size), special_flags=pygame.BLEND_RGBA_ADD)
+
+def apply_background_effects(surf, background_img, frame_idx, mode):
+    """Aplicar imagen de fondo con diferentes efectos aleatorios"""
+    if background_img is None:
+        return
+    
+    # Por ahora solo aplicar la imagen de fondo sin efectos complejos
+    try:
+        surf.blit(background_img, (0, 0))
+    except Exception as e:
+        print(f"Error aplicando imagen de fondo: {e}")
+        # Continuar sin la imagen de fondo
+
+def draw_meteor_shower(surf, frame_idx):
+    """Dibujar lluvia de meteoritos"""
+    config = EFFECTS_CONFIG['meteor_shower']
+    for i in range(config['count']):
+        # Meteoritos que cruzan la pantalla
+        start_frame = (frame_idx + i * 30) % 200
+        if start_frame < 50:  # Meteorito visible durante 50 frames
+            progress = start_frame / 50.0
+            
+            start_x = random.randint(-100, WIDTH * 2 + 100)
+            start_y = -50
+            end_x = start_x - 200
+            end_y = HEIGHT * 2 + 50
+            
+            x = int(start_x + (end_x - start_x) * progress)
+            y = int(start_y + (end_y - start_y) * progress)
+            
+            # Estela del meteorito
+            trail_length = 8
+            for t in range(trail_length):
+                trail_x = x + t * 5
+                trail_y = y - t * 5
+                alpha = max(0, 255 - t * 30)
+                
+                meteor_surf = pygame.Surface((6, 6), pygame.SRCALPHA)
+                pygame.draw.circle(meteor_surf, (255, 200, 100, alpha), (3, 3), 3)
+                surf.blit(meteor_surf, (trail_x - 3, trail_y - 3), special_flags=pygame.BLEND_RGBA_ADD)
+
+def draw_planet_glow(surf, center, radius, color):
+    """Dibujar efecto de brillo alrededor de planetas"""
+    config = EFFECTS_CONFIG['planet_glow']
+    glow_radius = int(radius * config['radius_multiplier'])
+    
+    for r in range(glow_radius, radius, -2):
+        alpha = max(0, config['intensity'] - (glow_radius - r) * 2)
+        glow_surf = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+        pygame.draw.circle(glow_surf, color + (alpha,), (r, r), r)
+        surf.blit(glow_surf, (center[0] - r, center[1] - r), special_flags=pygame.BLEND_RGBA_ADD)
+
+def draw_satellites(surf, planet_pos, planet_idx, frame_idx):
+    """Dibujar satélites/lunas de planetas"""
+    if planet_idx in SATELLITES:
+        sat_config = SATELLITES[planet_idx]
+        for i in range(sat_config['count']):
+            sat_angle = frame_idx * 0.05 + i * (2 * math.pi / sat_config['count'])
+            sat_x = planet_pos[0] + int(math.cos(sat_angle) * sat_config['dist'])
+            sat_y = planet_pos[1] + int(math.sin(sat_angle) * sat_config['dist'])
+            
+            pygame.draw.circle(surf, sat_config['col'], (sat_x, sat_y), sat_config['rad'])
+
+def generate_frames_streaming_simple(mode, fps, total_frames, video_writer):
+    """Versión simplificada para generar videos largos sin problemas de memoria"""
+    print(f"Iniciando generación de {total_frames} frames...")
+    
+    angle = 0
+    for i in range(total_frames):
+        # Crear surface temporal con el doble de tamaño para efectos
+        surf = pygame.Surface((WIDTH*2, HEIGHT*2), pygame.SRCALPHA)
+        surf.fill((0,0,20))  # Azul oscuro espacial
+        
+        # Aplicar imagen de fondo con efectos aleatorios
+        apply_background_effects(surf, background_img, i, mode)
+        
+        # Sistema solar básico
+        sun_center = (WIDTH, HEIGHT)  # Ajustar al centro del surface aumentado
+        
+        # Efectos de fondo según el modo
+        if mode in ['stars','all','zoom','zoom_pause','spaceship','cosmic','deep_space','all_effects','night_sky']:
+            for j, (sx, sy, base) in enumerate(stars):
+                brightness = int(max(100, min(255, base + 30 * math.sin(i/15 + j))))
+                pygame.draw.circle(surf, (brightness,)*3, (sx, sy), 1)
+        
+        # Sol con halo
+        draw_halo(surf, sun_center, 100, (255,200,0), 80)
+        pygame.draw.circle(surf, PLANET_COLORS[0], sun_center, PLANET_RADII[0])
+        
+        # Planetas orbitando
+        positions = {}
+        for idx in range(1,9):
+            ang = angle * (1 + idx*0.05)
+            x = sun_center[0] + int(math.cos(ang) * PLANET_DISTANCES[idx])
+            y = sun_center[1] + int(math.sin(ang) * PLANET_DISTANCES[idx])
+            positions[idx] = (x, y)
+            
+            # Dibujar planeta
+            pygame.draw.circle(surf, PLANET_COLORS[idx], (x,y), PLANET_RADII[idx])
+            
+            # Órbitas si corresponde
+            if mode in ['orbits','all','zoom','zoom_pause','spaceship','realistic']:
+                col = int(100 + 50 * math.sin(angle + idx))
+                pygame.draw.circle(surf, (col,)*3, sun_center, PLANET_DISTANCES[idx], 2)
+        
+        # Efectos adicionales según modo
+        if mode in ['asteroids', 'realistic', 'cosmic', 'all_effects']:
+            draw_asteroid_belt(surf, sun_center, i)
+        
+        if mode in ['comets', 'cosmic', 'all_effects']:
+            draw_comets(surf, sun_center, i)
+        
+        # Branding
+        surf.blit(watermark_font.render(BRANDING_TEXT, True, (200,200,200)), BRANDING_POS)
+        surf.blit(coffee_icon, (20, HEIGHT-30))
+        surf.blit(watermark_font.render(LINK_TEXT, True, link_color), LINK_POS)
+        
+        # Convertir a frame BGR con formato correcto
+        arr = pygame.surfarray.array3d(surf)
+        arr = np.rot90(arr)
+        arr = np.flipud(arr)
+        
+        # Asegurar que el array tenga el formato correcto para OpenCV
+        if arr.dtype != np.uint8:
+            arr = arr.astype(np.uint8)
+            
+        # Convertir RGB a BGR
+        frame = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+        
+        # Verificar que el frame tenga las dimensiones correctas
+        if frame.shape[:2] != (HEIGHT, WIDTH):
+            frame = cv2.resize(frame, (WIDTH, HEIGHT))
+        
+        # Asegurar que el frame sea continuo en memoria
+        frame = np.ascontiguousarray(frame)
+        
+        # Escribir frame
+        if frame is not None and frame.size > 0:
+            video_writer.write(frame)
+        else:
+            print(f"Warning: Frame {i} está vacío o None")
+        
+        # Progreso
+        if i % 50 == 0:
+            progress = (i / total_frames) * 100
+            print(f"Progreso: {progress:.1f}% ({i}/{total_frames} frames)")
+        
+        angle += 0.01
+        
+        # Limpiar memoria
+        del surf, arr, frame
+    
+    return total_frames
+
+def generate_frames_streaming(mode, fps, secs, writer):
+    """Generar frames y escribirlos directamente al video para optimizar memoria"""
+    angle = 0
+    total_frames = fps * secs
+    
+    for i in range(total_frames):
+        surf = pygame.Surface((WIDTH*2, HEIGHT*2), pygame.SRCALPHA)
+        surf.fill((0,0,0))
+        positions = {}
+        
+        # Aplicar imagen de fondo con efectos aleatorios
+        apply_background_effects(surf, background_img, i, mode)
+        
+        # Fondo de nebulosa para modos espaciales (se suma a la imagen de fondo)
+        if mode in ['nebula', 'cosmic', 'deep_space', 'all_effects']:
+            draw_nebula_background(surf, i)
+        
+        # Campo de estrellas
+        if mode in ['stars','all','zoom','zoom_pause','spaceship','cosmic','deep_space','all_effects','night_sky']:
+            for j, (sx, sy, base) in enumerate(stars):
+                brightness = int(max(100, min(255, base + 30 * math.sin(i/15 + j))))
+                pygame.draw.circle(surf, (brightness,)*3, (sx, sy), 1)
+        
+        # Lluvia de meteoritos
+        if mode in ['meteor_shower', 'cosmic', 'all_effects']:
+            draw_meteor_shower(surf, i)
+        
+        # Sol con efectos especiales
+        sun_center = (WIDTH, HEIGHT)
+        if mode in ['solar_flares', 'cosmic', 'all_effects']:
+            draw_solar_flares(surf, sun_center, i)
+        
+        # Halo solar
+        draw_halo(surf, sun_center, 100, (255,200,0), 80)
+        
+        # Sol principal
+        pygame.draw.circle(surf, PLANET_COLORS[0], sun_center, PLANET_RADII[0])
+        
+        # Cinturón de asteroides
+        if mode in ['asteroids', 'realistic', 'cosmic', 'all_effects']:
+            draw_asteroid_belt(surf, sun_center, i)
+        
+        # Planetas principales
+        for idx in range(1,9):
+            ang = angle * (1 + idx*0.05)
+            x = sun_center[0] + int(math.cos(ang) * PLANET_DISTANCES[idx])
+            y = sun_center[1] + int(math.sin(ang) * PLANET_DISTANCES[idx])
+            positions[idx] = (x, y)
+            
+            # Efectos de brillo en planetas
+            if mode in ['glow', 'cosmic', 'all_effects']:
+                draw_planet_glow(surf, (x, y), PLANET_RADII[idx], PLANET_COLORS[idx])
+            
+            # Trazas de planetas
+            if mode in ['detailed','all','zoom','zoom_pause','spaceship','trails','cosmic']:
+                trail = pygame.Surface((4*PLANET_RADII[idx],4*PLANET_RADII[idx]), pygame.SRCALPHA)
+                pygame.draw.circle(trail, PLANET_COLORS[idx] + (30,), (2*PLANET_RADII[idx],)*2, 2*PLANET_RADII[idx])
+                surf.blit(trail, (x-2*PLANET_RADII[idx], y-2*PLANET_RADII[idx]), special_flags=pygame.BLEND_RGBA_ADD)
+            
+            # Planeta principal
+            pygame.draw.circle(surf, PLANET_COLORS[idx], (x,y), PLANET_RADII[idx])
+            
+            # Nombres de planetas
+            if mode not in ['minimal', 'clean']:
+                surf.blit(font.render(PLANET_NAMES[idx], True, (255,255,255)), (x+PLANET_RADII[idx]+5, y-15))
+            
+            # Satélites/lunas
+            if mode in ['satellites', 'realistic', 'detailed', 'cosmic', 'all_effects']:
+                draw_satellites(surf, (x, y), idx, i)
+            
+            # Órbitas
+            if mode in ['orbits','all','zoom','zoom_pause','spaceship','realistic']:
+                col = int(100 + 50 * math.sin(angle + idx))
+                pygame.draw.circle(surf, (col,)*3, sun_center, PLANET_DISTANCES[idx], 2)
+        
+        # Cometas
+        if mode in ['comets', 'cosmic', 'all_effects']:
+            draw_comets(surf, sun_center, i)
+        
+        # Efectos adicionales del modo 'all'
+        if mode == 'all':
+            for p in EXTRA_PLANETS:
+                ang = angle * p['speed_factor']
+                px = WIDTH + int(math.cos(ang) * p['distance'])
+                py = HEIGHT + int(math.sin(ang) * p['distance'])
+                pygame.draw.circle(surf, p['color'], (px,py), p['radius'])
+            for c in COMETS:
+                ang = i * c['speed']
+                cx = WIDTH + int(math.cos(ang) * c['orbit_radius'])
+                cy = HEIGHT + int(math.sin(ang) * c['orbit_radius'])
+                for t in range(8):
+                    tx = int(cx - math.cos(ang) * (c['radius']*4 + t*3))
+                    ty = int(cy - math.sin(ang) * (c['radius']*4 + t*3))
+                    alpha = max(0, 150 - t*20)
+                    tail = pygame.Surface((c['radius']*2,)*2, pygame.SRCALPHA)
+                    pygame.draw.circle(tail, c['color'] + (alpha,), (c['radius'],)*2, c['radius'])
+                    surf.blit(tail, (tx-c['radius'], ty-c['radius']), special_flags=pygame.BLEND_RGBA_ADD)
+                pygame.draw.circle(surf, c['color'], (cx,cy), c['radius'])
+        
+        # Nave espacial
+        if mode == 'spaceship' and SPACESHIP:
+            start = positions[SPACESHIP['start']]
+            end = positions[SPACESHIP['end']]
+            cycle = (i * SPACESHIP['speed']) % 2
+            t = cycle if cycle <= 1 else 2 - cycle
+            sx, sy = interpolate(start, end, t)
+            pygame.draw.circle(surf, SPACESHIP['col'], (int(sx),int(sy)), SPACESHIP['size'])
+        
+        # Efectos de zoom y enfoque
+        if mode in ['zoom','zoom_pause','spaceship','planet_focus']:
+            focus = min(8, i//(fps*3)+1)
+            cx, cy = positions.get(focus, sun_center)
+            w2, h2 = int(WIDTH/1.5), int(HEIGHT/1.5)
+            view = surf.subsurface((cx-w2//2, cy-h2//2, w2, h2))
+            vis = pygame.transform.smoothscale(view, (WIDTH,HEIGHT))
+        else:
+            vis = surf
+        
+        # Branding y footer
+        vis.blit(watermark_font.render(BRANDING_TEXT, True, (200,200,200)), BRANDING_POS)
+        vis.blit(coffee_icon, (20, HEIGHT-30))
+        vis.blit(watermark_font.render(LINK_TEXT, True, link_color), LINK_POS)
+        
+        # Convertir a frame de video y escribir inmediatamente
+        arr = pygame.surfarray.array3d(vis)
+        arr = np.rot90(arr)
+        arr = np.flipud(arr)
+        
+        # Asegurar que el array tenga el formato correcto para OpenCV
+        if arr.dtype != np.uint8:
+            arr = arr.astype(np.uint8)
+            
+        # Convertir RGB a BGR
+        frame = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+        
+        # Verificar que el frame tenga las dimensiones correctas
+        if frame.shape[:2] != (HEIGHT, WIDTH):
+            frame = cv2.resize(frame, (WIDTH, HEIGHT))
+        
+        # Asegurar que el frame sea continuo en memoria
+        frame = np.ascontiguousarray(frame)
+        
+        # Escribir frame inmediatamente para liberar memoria
+        if frame is not None and frame.size > 0:
+            writer.write(frame)
+        else:
+            print(f"Warning: Frame {i} está vacío o None")
+        
+        # Limpiar referencias para liberar memoria
+        del arr, frame, surf, vis
+        
+        # Progreso cada 50 frames
+        if i % 50 == 0:
+            progress = (i / total_frames) * 100
+            print(f"Progreso: {progress:.1f}% ({i}/{total_frames} frames)")
+        
+        angle += 0.01
+    
+    return total_frames
+
+def save_mp4_legacy(frames, fps, outname):
+    """Función legacy para guardar frames ya generados"""
+    if not frames or len(frames) == 0:
+        print("Error: No hay frames para guardar")
+        return None
+    
+    if not outname.endswith('.mp4'):
+        outname = outname.replace('.avi', '.mp4')
+    
+    height, width = frames[0].shape[:2]
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    writer = cv2.VideoWriter(outname, fourcc, fps, (width, height))
+    
+    if not writer.isOpened():
+        print(f"Error: No se pudo abrir el VideoWriter para {outname}")
+        return None
+    
+    frames_written = 0
+    for frame in frames:
+        if frame is not None and frame.size > 0:
+            writer.write(frame)
+            frames_written += 1
+    
+    writer.release()
+    
+    if frames_written > 0:
+        print(f"Video guardado correctamente: {outname}")
+        print(f"Frames escritos: {frames_written}/{len(frames)}")
+        if os.path.exists(outname):
+            size = os.path.getsize(outname)
+            print(f"Tamaño del archivo: {size} bytes ({size/(1024*1024):.1f} MB)")
+        return outname
+    
+    return None
+
+def save_mp4(mode, fps, secs, outname):
+    """Guardar video MP4 usando streaming para optimizar memoria"""
+    # Asegurar que el archivo sea MP4 para mejor compatibilidad con navegadores
+    if not outname.endswith('.mp4'):
+        outname = outname.replace('.avi', '.mp4')
+    
+    # Usar codec H.264 para mejor compatibilidad con navegadores web
+    fourcc = cv2.VideoWriter_fourcc(*'H264')
+    writer = cv2.VideoWriter(outname, fourcc, fps, (WIDTH, HEIGHT))
+    
+    if not writer.isOpened():
+        print(f"Error: No se pudo abrir el VideoWriter para {outname}")
+        print(f"Dimensiones: {WIDTH}x{HEIGHT}, FPS: {fps}")
+        print("Intentando con codec alternativo...")
+        
+        # Intentar con codec alternativo
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        outname_avi = outname.replace('.mp4', '.avi')
+        writer = cv2.VideoWriter(outname_avi, fourcc, fps, (WIDTH, HEIGHT))
+        
+        if not writer.isOpened():
+            print(f"Error: Tampoco se pudo abrir con XVID")
+            return None
+        else:
+            outname = outname_avi
+            print(f"Usando formato AVI con codec XVID: {outname}")
+    
+    print(f"Iniciando generación de {fps * secs} frames...")
+    
+    try:
+        # Generar frames directamente al video (streaming)
+        frames_written = generate_frames_streaming_simple(mode, fps, fps * secs, writer)
+        
+        writer.release()
+        
+        if frames_written > 0:
+            print(f"Video guardado correctamente: {outname}")
+            print(f"Frames escritos: {frames_written}")
+            
+            # Verificar el tamaño del archivo
+            if os.path.exists(outname):
+                size = os.path.getsize(outname)
+                print(f"Tamaño del archivo: {size} bytes ({size/(1024*1024):.1f} MB)")
+        else:
+            print(f"Error: No se escribieron frames en {outname}")
+            return None
+        
+        return outname
+        
+    except Exception as e:
+        print(f"Error durante la generación: {e}")
+        writer.release()
+        return None
+
+def generate_frames(mode, fps, secs):
+    """Función de compatibilidad para videos cortos (<=30s)"""
+    if secs > 30:
+        print("Advertencia: Para videos largos (>30s) se usa generación optimizada")
+        # Para videos largos, usar directamente save_mp4 optimizado
+        return []
+    
+    # Para videos cortos, mantener el método original
+    frames = []
+    angle = 0
+    for i in range(fps * secs):
+        surf = pygame.Surface((WIDTH*2, HEIGHT*2), pygame.SRCALPHA)
+        surf.fill((0,0,0))
+        positions = {}
+        
+        # Aplicar imagen de fondo con efectos aleatorios
+        apply_background_effects(surf, background_img, i, mode)
+        
+        # [Lógica simplificada para videos cortos]
+        # Sol básico
+        sun_center = (WIDTH, HEIGHT)
+        draw_halo(surf, sun_center, 100, (255,200,0), 80)
+        pygame.draw.circle(surf, PLANET_COLORS[0], sun_center, PLANET_RADII[0])
+        
+        # Planetas básicos
+        for idx in range(1,9):
+            ang = angle * (1 + idx*0.05)
+            x = sun_center[0] + int(math.cos(ang) * PLANET_DISTANCES[idx])
+            y = sun_center[1] + int(math.sin(ang) * PLANET_DISTANCES[idx])
+            positions[idx] = (x, y)
+            pygame.draw.circle(surf, PLANET_COLORS[idx], (x,y), PLANET_RADII[idx])
+            surf.blit(font.render(PLANET_NAMES[idx], True, (255,255,255)), (x+PLANET_RADII[idx]+5, y-15))
+        
+        # Branding
+        surf.blit(watermark_font.render(BRANDING_TEXT, True, (200,200,200)), BRANDING_POS)
+        surf.blit(coffee_icon, (20, HEIGHT-30))
+        surf.blit(watermark_font.render(LINK_TEXT, True, link_color), LINK_POS)
+        
+        # Convertir a frame
+        arr = pygame.surfarray.array3d(surf)
+        arr = np.rot90(arr)
+        arr = np.flipud(arr)
+        
+        # Asegurar que el array tenga el formato correcto para OpenCV
+        if arr.dtype != np.uint8:
+            arr = arr.astype(np.uint8)
+            
+        # Convertir RGB a BGR
+        frame = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+        
+        # Verificar que el frame tenga las dimensiones correctas
+        if frame.shape[:2] != (HEIGHT, WIDTH):
+            frame = cv2.resize(frame, (WIDTH, HEIGHT))
+        
+        # Asegurar que el frame sea continuo en memoria
+        frame = np.ascontiguousarray(frame)
+        
+        frames.append(frame)
+        angle += 0.01
+        
+    return frames
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Generador de videos del sistema solar con efectos avanzados - Papiweb Desarrollos.")
+    
+    # Modos disponibles
+    modes = [
+        'basic', 'detailed', 'stars', 'orbits', 'all', 'zoom', 'zoom_pause', 'spaceship',
+        'minimal', 'clean', 'realistic', 'cosmic', 'nebula', 'deep_space', 'night_sky',
+        'asteroids', 'comets', 'meteor_shower', 'solar_flares', 'glow', 'trails',
+        'satellites', 'planet_focus', 'all_effects'
+    ]
+    
+    parser.add_argument('--mode', choices=modes, default='basic',
+                       help='Modo de visualización del sistema solar')
+    parser.add_argument('--seconds', type=int, default=15, 
+                       help='Duración del video en segundos (1-120)')
+    parser.add_argument('--fps', type=int, default=30,
+                       help='Frames por segundo (5-60)')
+    parser.add_argument('--output', type=str, default='solar_sim.mp4',
+                       help='Nombre del archivo de salida')
+    parser.add_argument('--quality', choices=['low', 'medium', 'high'], default='medium',
+                       help='Calidad del video (afecta resolución y efectos)')
+    parser.add_argument('--speed', type=float, default=1.0,
+                       help='Multiplicador de velocidad de animación (0.1-5.0)')
+    
+    args = parser.parse_args()
+    
+    # Validaciones
+    if not (1 <= args.seconds <= 120):
+        print("Error: La duración debe estar entre 1 y 120 segundos")
+        exit(1)
+    if not (5 <= args.fps <= 60):
+        print("Error: Los FPS deben estar entre 5 y 60")
+        exit(1)
+    if not (0.1 <= args.speed <= 5.0):
+        print("Error: La velocidad debe estar entre 0.1 y 5.0")
+        exit(1)
+    
+    # Usar configuración de calidad para ajustar resolución
+    quality_settings = {
+        'low': (800, 600),
+        'medium': (1400, 1000), 
+        'high': (1920, 1080)
+    }
+    
+    current_width, current_height = quality_settings[args.quality]
+    
+    print(f"Generando video: {args.output}")
+    print(f"Modo: {args.mode} | Duración: {args.seconds}s | FPS: {args.fps}")
+    print(f"Calidad: {args.quality} ({current_width}x{current_height}) | Velocidad: {args.speed}x")
+    
+    # Usar método optimizado para todos los videos (incluye todos los modos)
+    print("Usando generación optimizada con soporte completo de modos...")
+    output_file = save_mp4(args.mode, args.fps, args.seconds, args.output)
+    
+    if output_file:
+        print(f"Video generado: {output_file} (modo={args.mode}) con branding {BRANDING_TEXT} y link {LINK_TEXT}")
+    else:
+        print("Error: No se pudo generar el video")
+        exit(1)

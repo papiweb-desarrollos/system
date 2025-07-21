@@ -1,0 +1,31 @@
+title: "Sistema Solar - Papiweb Desarrollos"
+description: "Generador de Videos del Sistema Solar con 24 modos únicos de visualización"
+author: "Papiweb Desarrollos Informáticos"
+url: ""
+baseurl: ""
+
+# GitHub Pages settings
+theme: null
+plugins: []
+
+# Exclude files from Jekyll processing
+exclude:
+  - README.md
+  - .gitignore
+  - .github/
+
+# Include all files
+include:
+  - static/
+  - videos/
+
+# Disable Jekyll processing for static files
+plugins:
+  - jekyll-optional-front-matter
+
+# Set default layout
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: null

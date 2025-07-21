@@ -126,6 +126,13 @@
             width: 100%;
             border-radius: 8px;
             margin: 10px 0;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .demo-card video:hover {
+            border-color: rgba(255, 215, 0, 0.6);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
         }
 
         .info-section {
@@ -367,9 +374,9 @@
             <div class="demo-grid">
                 <div class="demo-card">
                     <h3>🌟 Modo Realista</h3>
-                    <video controls>
+                    <video controls preload="metadata" poster="static/obser.png">
+                        <source src="static/solar_realistic.mp4" type="video/mp4">
                         <source src="static/solar_realistic_1753125177291.avi" type="video/avi">
-                        <source src="static/test_orbits_fixed.avi" type="video/avi">
                         Tu navegador no soporta el elemento video.
                     </video>
                     <p>Simulación realista del sistema solar con órbitas precisas</p>
@@ -380,7 +387,8 @@
                 
                 <div class="demo-card">
                     <h3>🌌 Efectos Especiales</h3>
-                    <video controls>
+                    <video controls preload="metadata" poster="static/obser.png">
+                        <source src="static/solar_all_effects.mp4" type="video/mp4">
                         <source src="static/solar_all_1753127531310.avi" type="video/avi">
                         Tu navegador no soporta el elemento video.
                     </video>

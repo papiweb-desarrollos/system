@@ -212,6 +212,41 @@
             border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
 
+        .highlight-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .code-snippet {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .feature-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .option-card.premium {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -243,6 +278,15 @@
         <div class="panel">
             <h2>🚀 Sistema Solar Interactivo</h2>
             <p>Bienvenido al generador de videos del sistema solar más avanzado. Explora 24 modos diferentes de visualización con efectos realistas, cósmicos y artísticos.</p>
+            
+            <div style="background: rgba(255, 215, 0, 0.1); border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 10px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #ffd700; margin-bottom: 15px;">⚠️ Nota Importante</h3>
+                <p style="margin-bottom: 15px;">Esta es una <strong>demo estática</strong> del proyecto. Para generar videos personalizados necesitas ejecutar la aplicación Python localmente.</p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <a href="https://github.com/papiweb-desarrollos/system" target="_blank" class="btn" style="margin: 5px;">📦 Descargar Código</a>
+                    <a href="https://link.mercadopago.com.ar/papiweb" target="_blank" class="btn" style="margin: 5px;">💳 Acceso Completo</a>
+                </div>
+            </div>
         </div>
 
         <!-- Características -->
@@ -272,6 +316,34 @@
             </div>
         </div>
 
+        <!-- Instrucciones de Uso -->
+        <div class="info-section">
+            <h3>🛠️ Cómo Usar el Generador Completo</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 10px;">
+                    <h4 style="color: #ffd700; margin-bottom: 10px;">📥 Opción 1: Instalación Local</h4>
+                    <ol style="text-align: left; padding-left: 20px;">
+                        <li>Descargar el código desde GitHub</li>
+                        <li>Instalar Python 3.12+</li>
+                        <li>Ejecutar: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">pip install flask pygame opencv-python numpy</code></li>
+                        <li>Ejecutar: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">python web_app.py</code></li>
+                        <li>Abrir: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">http://localhost:5001</code></li>
+                    </ol>
+                </div>
+                
+                <div style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 10px;">
+                    <h4 style="color: #ffd700; margin-bottom: 10px;">⚡ Opción 2: Acceso Directo</h4>
+                    <p>Contacta con Papiweb Desarrollos para:</p>
+                    <ul style="text-align: left; padding-left: 20px;">
+                        <li>🖥️ Aplicación ejecutable (Windows/Mac/Linux)</li>
+                        <li>🌐 Acceso a servidor privado</li>
+                        <li>🎨 Videos personalizados bajo demanda</li>
+                        <li>📞 Soporte técnico incluido</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- Modos de Visualización -->
         <div class="info-section">
             <h3>🌌 Modos de Visualización Disponibles</h3>
@@ -289,6 +361,9 @@
         <!-- Videos Demo -->
         <div class="demo-section">
             <h3 style="color: #ffd700; text-align: center; margin-bottom: 20px;">🎥 Videos de Demostración</h3>
+            <p style="text-align: center; margin-bottom: 20px; opacity: 0.8;">
+                Estos videos fueron generados con la aplicación Python. <strong>Para crear los tuyos propios, necesitas ejecutar la aplicación localmente.</strong>
+            </p>
             <div class="demo-grid">
                 <div class="demo-card">
                     <h3>🌟 Modo Realista</h3>
@@ -298,6 +373,9 @@
                         Tu navegador no soporta el elemento video.
                     </video>
                     <p>Simulación realista del sistema solar con órbitas precisas</p>
+                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        <small>📊 Generado con: Modo "realistic" + 30 segundos + 1920x1080</small>
+                    </div>
                 </div>
                 
                 <div class="demo-card">
@@ -307,16 +385,49 @@
                         Tu navegador no soporta el elemento video.
                     </video>
                     <p>Combinación de todos los efectos visuales disponibles</p>
+                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        <small>📊 Generado con: Modo "all_effects" + fondo astronómico + partículas</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(255, 215, 0, 0.05); border-radius: 10px;">
+                <h4 style="color: #ffd700; margin-bottom: 15px;">🎮 Interfaz de la Aplicación Completa</h4>
+                <p>La aplicación Flask incluye:</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div>✨ Selector de 24 modos</div>
+                    <div>⏱️ Control de duración</div>
+                    <div>📐 Resolución personalizable</div>
+                    <div>🎬 Previsualización en tiempo real</div>
+                    <div>💾 Descarga automática</div>
+                    <div>🔄 Gestión de archivos</div>
                 </div>
             </div>
         </div>
 
         <!-- Call to Action -->
         <div class="cta-section">
-            <h3>🚀 ¿Listo para crear tu video personalizado?</h3>
-            <p>Contacta con Papiweb Desarrollos para obtener acceso completo al generador</p>
-            <a href="https://link.mercadopago.com.ar/papiweb" target="_blank" class="btn">💳 Acceder Ahora</a>
-            <a href="mailto:papiweb.desarrollos@gmail.com" class="btn">📧 Contactar</a>
+            <h3>🚀 ¿Listo para crear tus videos personalizados?</h3>
+            <p style="margin-bottom: 20px;">Elige la opción que mejor se adapte a tus necesidades:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px;">
+                    <h4 style="color: #ffd700;">🆓 Opción Gratuita</h4>
+                    <p>Descarga el código fuente y ejecuta localmente</p>
+                    <a href="https://github.com/papiweb-desarrollos/system" target="_blank" class="btn">📦 GitHub Repository</a>
+                </div>
+                
+                <div style="background: rgba(255, 215, 0, 0.1); padding: 20px; border-radius: 10px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                    <h4 style="color: #ffd700;">⭐ Opción Premium</h4>
+                    <p>Acceso directo, videos personalizados y soporte</p>
+                    <a href="https://link.mercadopago.com.ar/papiweb" target="_blank" class="btn">💳 Acceder Ahora</a>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <a href="mailto:papiweb.desarrollos@gmail.com" class="btn">📧 Consultas y Soporte</a>
+                <a href="https://github.com/papiweb-desarrollos/system/blob/main/README.md" target="_blank" class="btn">📚 Documentación</a>
+            </div>
         </div>
 
         <div class="footer">
